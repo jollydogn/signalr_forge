@@ -1,111 +1,112 @@
 # SignalForge 🚀
 
-**SignalForge**, .NET 10 üzerinde çalışan profesyonel, modüler, ve ABP tarzı iş mantığına sahip (ancak hiçbir dış bağımlılığı olmayan) bir gerçek zamanlı haberleşme, chat, presence ve loglama kütüphanesidir.
+**SignalForge** is a professional, out-of-the-box real-time communication, chat, presence, and logging system built exclusively on .NET 10. It is designed to act as a standalone application you can instantly clone and run, providing a robust backend for any modern chat interface.
 
-Bu modül, web uygulamalarınızın mevcut DbContext'i ve Auth sistemleri ile kusursuzca birleşmek için tasarlanmıştır.
+## 🚀 Getting Started
 
-## Özellikler
-
-- **Grup ve DM Çözümleri**: 1:1 direkt mesajlar, grup chat yönetimi ve yetkilendirmesi (`IChatManager`, `IGroupManager`).
-- **Okundu/İletildi Bilgisi**: `MessageReadReceipt` ile anlık mesaj takibi.
-- **Gerçek Zamanlı Presence Takibi**: SignalR `Hub` ile online/offline mekanizmaları (`IPresenceManager`).
-- **Dahili Loglama Entegrasyonu**: Kendi içindeki action filter'ları ile Request ve Activity loglarının veritabanına otomatik enjekte edilmesi (`RequestLoggingFilter`, `ActivityLoggingFilter`).
-- **.NET 10 Uyumluluğu**: Minimal API ve temiz mimari katmanlama prensipleri; Entity Framework Core 9+ ile Generic Schema.
+1. Clone the repository: `git clone https://github.com/jollydogn/signalr_forge.git`
+2. Update the `DefaultConnection` string in `src/SignalForge.Sample/appsettings.json` to point to your PostgreSQL instance.
+3. Run Entity Framework migrations:
+   ```bash
+   cd src/SignalForge.Sample
+   dotnet ef migrations add Initial
+   dotnet ef database update
+   ```
+4. Start the API server: `dotnet run --project src/SignalForge.Sample`
 
 ---
 
-## 🛠️ Nasıl Kullanılır?
+## 📡 SignalR WebSocket Channels & Usage
 
-SignalForge, projenize kod referansı olarak eklenip anında çalıştırılmaya hazırdır. 
+The application uses strongly-typed SignalR WebSockets. Connect your client (React, Angular, Vue, Mobile) to:
+**Hub URL:** `http://localhost:<port>/hubs/chat`
 
-### 1. ModelBuilder Entegrasyonu (EF Core)
-Kendi projenizin `DbContext` sınıfına SignalForge veritabanı tablolarını aktarmanız gerekir. Bunun için DbSet'leri içeri almalı ve `OnModelCreating` içerisinde `ConfigureSignalForge` extension'unu çağırmalısınız.
+Once connected, your frontend must listen to the following events dispatched by the server:
 
-```csharp
-using SignalForge.EntityFrameworkCore;
-using SignalForge.Entities;
-
-public class MyProjectDbContext : DbContext, ISignalForgeDbContext
-{
-    public MyProjectDbContext(DbContextOptions<MyProjectDbContext> options) : base(options) { }
-
-    public DbSet<ChatUser> ChatUsers { get; set; } = default!;
-    public DbSet<ChatGroup> ChatGroups { get; set; } = default!;
-    public DbSet<ChatGroupMember> ChatGroupMembers { get; set; } = default!;
-    public DbSet<ChatMessage> ChatMessages { get; set; } = default!;
-    public DbSet<MessageReadReceipt> MessageReadReceipts { get; set; } = default!;
-    public DbSet<UserConnection> UserConnections { get; set; } = default!;
-    public DbSet<RequestLog> RequestLogs { get; set; } = default!;
-    public DbSet<ActivityLog> ActivityLogs { get; set; } = default!;
-
-    protected override void OnModelCreating(ModelBuilder builder)
-    {
-        base.OnModelCreating(builder);
-        
-        // SignalForge tablolarını kendi uygulamanızın şemasına ekler.
-        builder.ConfigureSignalForge(tablePrefix: "Sf_"); 
-    }
-}
-```
-
-### 2. Dependency Injection & Service's Registration
-`Program.cs` dosyanızda kütüphane servislerini register edin ve hub konfigürasyonunu ayağa kaldırın.
-
-```csharp
-using SignalForge.Extensions;
-using SignalForge.Filters;
-
-var builder = WebApplication.CreateBuilder(args);
-
-// API katmanınızda SignalForge Action Filter'larını aktifleştirin
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<RequestLoggingFilter>();
-    options.Filters.Add<ActivityLoggingFilter>();
+### 1. `ReceiveMessage`
+Triggered whenever a new message is sent to a group you are in, or directly to you.
+```javascript
+// Frontend JS Example
+connection.on("ReceiveMessage", (messageDto) => {
+    console.log("New message received from: ", messageDto.senderId, " Content: ", messageDto.content);
 });
-
-// Kendi DbContext'inizi ISignalForgeDbContext interface'i ile haritalayın
-builder.Services.AddScoped<ISignalForgeDbContext>(provider => provider.GetRequiredService<MyProjectDbContext>());
-
-// SignalR ve Manager'ları ayağa kaldırın
-builder.Services.AddSignalForge(builder.Configuration);
-
-var app = builder.Build();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
-
-// WebSocket ChatHub haritalaması
-app.MapSignalForgeHub(); 
-
-app.Run();
 ```
 
-### 3. Activity Logging (Action Filter Kullanımı)
-Mevcut Controller methodlarınıza sadece `[ActivityLogging]` etiketini koyarak işlemi otomatik Log veritabanına aktarın.
+### 2. `MessageRead`
+Triggered when a user reads a message you sent.
+```javascript
+connection.on("MessageRead", (messageId, userId) => {
+    // Update the UI to show double-blue ticks for this messageId
+});
+```
 
-```csharp
-[HttpPost("api/users")]
-[ActivityLogging("UserCreated", Description = "New user registered via application")]
-public async Task<IActionResult> CreateUser([FromBody] UserDto input)
-{
-    // ... logic
-    return Ok();
-}
+### 3. `PresenceUpdated`
+Triggered when any user comes online or goes offline.
+```javascript
+connection.on("PresenceUpdated", (presenceDto) => {
+    if(presenceDto.isOnline) {
+        console.log("User is online!");
+    }
+});
+```
+
+### 4. Typing Indicators (`UserTyping` & `UserStoppedTyping`)
+Triggered when someone starts or stops typing in a specific group.
+```javascript
+connection.on("UserTyping", (groupId, userDisplayName) => {
+    console.log(`${userDisplayName} is typing...`);
+});
 ```
 
 ---
 
-## Modüler Katmanlar ve REST API
+## 💻 How to Perform Actions (REST API)
 
-SignalForge varsayılan olarak şu API uç noktalarını (Endpoints) sağlar:
-- **`GET/POST /api/chat`**: Mesaj okundu, oluşturuldu, testleri.
-- **`GET/POST /api/groups`**: Grup kurma, DM başlatma, ayrılma.
-- **`GET /api/presence`**: Online üye takibi.
-- **`GET /api/logs`**: Sistemin Request ve Activity geçmişi.
+While the frontend listens via WebSockets, *actions* (like sending a message or joining a group) are dispatched via the REST API or Hub Methods.
 
-İhtiyacınıza göre arkaplandaki `IChatManager`, `IGroupManager` servislerini kendi mimarilerinizde Dependency Injection ile kullanabilir ve iş kurallarını (`virtual` metodlardır) Controller yazmadan doğrudan override edebilirsiniz.
+### 1. How to Send a Message
+To send a message, make a `POST` request to the Message endpoint. If you are sending a direct message, `GroupId` should be the ID of your 1:1 chat channel.
 
-> Açık kaynak kod referansları için `.github/workflows/` içindeki CI test raporlarına bakarak güvenilirliği teyit edebilirsiniz.
+**Endpoint:** `POST /api/chat/messages`
+**Body:**
+```json
+{
+  "groupId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "content": "Hello everyone!"
+}
+```
+*Behind the scenes: The server saves the message to PostgreSQL and automatically triggers the `ReceiveMessage` WebSocket event to all members of that group.*
+
+### 2. How to Join a Group
+Users can join existing groups to start receiving their messages.
+
+**Endpoint:** `POST /api/groups/{groupId}/join`
+**Body:**
+```json
+{
+  "userDisplayName": "JohnDoe"
+}
+```
+*Behind the scenes: The API registers the user in `ChatGroupMember` and triggers the `UserJoinedGroup` SignalR broadcast.*
+
+### 3. How to Get a Read Receipt (Mark as Read)
+When the user's screen displays a message, the frontend should notify the backend that it was read.
+
+**Endpoint:** `POST /api/chat/messages/{messageId}/read`
+*Empty Body*
+
+*Behind the scenes: Creates a `MessageReadReceipt` record in the database preventing duplicate reads, and broadcasts the `MessageRead` socket event back to the original sender.*
+
+### 4. Creating a 1:1 Direct Message (DM) Channel
+Direct messages are just special groups with exactly 2 people under the hood.
+
+**Endpoint:** `POST /api/groups/direct/{otherUserId}`
+*Returns:* The `GroupDto` of the 1:1 channel. If one doesn't exist, it creates it automatically.
+
+---
+
+## 🛡️ Audit and Activity Logging
+
+SignalForge ships with automatic logging filters. Any HTTP request will be logged into the `sf_request_logs` table automatically.
+
+Furthermore, business methods in the Controller are tagged with `[ActivityLogging]`. For example, joining a group automatically writes a "GroupJoined" activity trail to the database (`sf_activity_logs`), making auditing incredibly easy.
