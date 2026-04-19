@@ -1,5 +1,3 @@
-# SignalForge 🚀
-
 **SignalForge** is a professional, out-of-the-box real-time communication, chat, presence, and logging system built exclusively on .NET 10. It is designed to act as a standalone application you can instantly clone and run, providing a robust backend for any modern chat interface.
 
 ## 🚀 Getting Started
