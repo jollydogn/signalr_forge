@@ -54,9 +54,7 @@ public static class SignalForgeServiceCollectionExtensions
     /// </summary>
     public static IEndpointConventionBuilder MapSignalForgeHub(this IEndpointRouteBuilder endpoints)
     {
-        // Hubs will be mapped here (Phase 3)
-        // return endpoints.MapHub<ChatHub>("/hubs/chat");
-        
-        throw new NotImplementedException("ChatHub is not yet implemented.");
+        var options = endpoints.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<SignalForgeOptions>>().Value;
+        return endpoints.MapHub<SignalForge.Hubs.ChatHub>(options.HubPath);
     }
 }
