@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SignalForge.EntityFrameworkCore.Extensions;
 
 namespace SignalForge.EntityFrameworkCore;
 
@@ -10,13 +11,28 @@ public static class SignalForgeModelBuilderExtensions
     /// </summary>
     public static void ConfigureSignalForge(this ModelBuilder builder, string tablePrefix = "Sf_", string? schema = null)
     {
-        builder.ApplyConfiguration(new Configurations.ChatUser.ChatUserConfiguration(tablePrefix, schema));
-        builder.ApplyConfiguration(new Configurations.ChatGroup.ChatGroupConfiguration(tablePrefix, schema));
-        builder.ApplyConfiguration(new Configurations.ChatGroupMember.ChatGroupMemberConfiguration(tablePrefix, schema));
-        builder.ApplyConfiguration(new Configurations.ChatMessage.ChatMessageConfiguration(tablePrefix, schema));
-        builder.ApplyConfiguration(new Configurations.MessageReadReceipt.MessageReadReceiptConfiguration(tablePrefix, schema));
-        builder.ApplyConfiguration(new Configurations.UserConnection.UserConnectionConfiguration(tablePrefix, schema));
-        builder.ApplyConfiguration(new Configurations.RequestLog.RequestLogConfiguration(tablePrefix, schema));
-        builder.ApplyConfiguration(new Configurations.ActivityLog.ActivityLogConfiguration(tablePrefix, schema));
+        // 1. Read all configurations directly from the assembly automatically
+        builder.ApplyConfigurationsFromAssembly(typeof(SignalForgeModelBuilderExtensions).Assembly);
+
+        // 2. Apply Custom Table Prefix and Schema to all SignalForge entities dynamically
+        foreach (var entity in builder.Model.GetEntityTypes())
+        {
+            if (entity.ClrType.Namespace != null && entity.ClrType.Namespace.Contains("SignalForge.Entities"))
+            {
+                var tableName = entity.GetTableName();
+                if (tableName != null && !tableName.StartsWith(tablePrefix))
+                {
+                    entity.SetTableName(tablePrefix + tableName);
+                }
+
+                if (!string.IsNullOrEmpty(schema))
+                {
+                    entity.SetSchema(schema);
+                }
+            }
+        }
+
+        // 3. Convert all Database names and columns to snake_case format
+        builder.ToSnakeCase();
     }
 }
