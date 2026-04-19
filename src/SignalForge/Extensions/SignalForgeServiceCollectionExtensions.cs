@@ -40,10 +40,10 @@ public static class SignalForgeServiceCollectionExtensions
         services.AddHttpContextAccessor();
 
         // Managers will be registered here (Phase 2)
-        // services.AddScoped<IChatManager, ChatManager>();
-        // services.AddScoped<IGroupManager, GroupManager>();
-        // services.AddScoped<IPresenceManager, PresenceManager>();
-        // services.AddScoped<ILogManager, LogManager>();
+        services.AddScoped<SignalForge.Managers.Chat.IChatManager, SignalForge.Managers.Chat.ChatManager>();
+        services.AddScoped<SignalForge.Managers.Groups.IGroupManager, SignalForge.Managers.Groups.GroupManager>();
+        services.AddScoped<SignalForge.Managers.Presence.IPresenceManager, SignalForge.Managers.Presence.PresenceManager>();
+        services.AddScoped<SignalForge.Managers.Logging.ILogManager, SignalForge.Managers.Logging.LogManager>();
 
         return services;
     }
