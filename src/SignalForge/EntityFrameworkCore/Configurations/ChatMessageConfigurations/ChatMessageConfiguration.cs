@@ -1,23 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SignalForge.Entities;
+using SignalForge.EntityFrameworkCore.Extensions;
 
-namespace SignalForge.EntityFrameworkCore.Configurations.ChatMessage;
+namespace SignalForge.EntityFrameworkCore.Configurations.ChatMessageConfigurations;
 
 public class ChatMessageConfiguration : IEntityTypeConfiguration<Entities.ChatMessage>
 {
-    private readonly string _tablePrefix;
-    private readonly string? _schema;
-
-    public ChatMessageConfiguration(string tablePrefix, string? schema)
-    {
-        _tablePrefix = tablePrefix;
-        _schema = schema;
-    }
-
     public void Configure(EntityTypeBuilder<Entities.ChatMessage> builder)
     {
-        builder.ToTable(_tablePrefix + "Messages", _schema);
+        builder.ToTable(builder.GetTableName());
         builder.HasKey(x => x.Id);
         
         builder.Property(x => x.Content).IsRequired().HasMaxLength(4000);

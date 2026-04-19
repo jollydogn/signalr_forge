@@ -1,23 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SignalForge.Entities;
+using SignalForge.EntityFrameworkCore.Extensions;
 
-namespace SignalForge.EntityFrameworkCore.Configurations.ActivityLog;
+namespace SignalForge.EntityFrameworkCore.Configurations.ActivityLogConfigurations;
 
 public class ActivityLogConfiguration : IEntityTypeConfiguration<Entities.ActivityLog>
 {
-    private readonly string _tablePrefix;
-    private readonly string? _schema;
-
-    public ActivityLogConfiguration(string tablePrefix, string? schema)
-    {
-        _tablePrefix = tablePrefix;
-        _schema = schema;
-    }
-
     public void Configure(EntityTypeBuilder<Entities.ActivityLog> builder)
     {
-        builder.ToTable(_tablePrefix + "ActivityLogs", _schema);
+        builder.ToTable(builder.GetTableName());
         builder.HasKey(x => x.Id);
         
         builder.Property(x => x.ActivityType).IsRequired().HasMaxLength(128);

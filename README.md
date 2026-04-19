@@ -1,4 +1,16 @@
+# SignalForge 🚀
+
 **SignalForge** is a professional, out-of-the-box real-time communication, chat, presence, and logging system built exclusively on .NET 10. It is designed to act as a standalone application you can instantly clone and run, providing a robust backend for any modern chat interface.
+
+## 🏛️ Project Architecture
+The application applies Clean Architecture rules, ensuring separation of business rules, entity persistence, and HTTP presentation layers perfectly.
+
+- **Entities Layer**: Core database models (`ChatUser`, `ChatMessage`, `ActivityLog`, etc.)
+- **Manager Layer (Business Logic)**: All complex scenarios (joining groups, maintaining sockets) are encapsulated inside `ChatManager`, `GroupManager`, and `PresenceManager`. Controllers remain extremely thin.
+- **Data Transfer Objects (DTOs)**: The API strictly uses lightweight communication objects (e.g., `MessageDto`, `PresenceDto`).
+- **Entity Framework SOLID Configurations**: EF Core schema building rules are cleanly partitioned and modularly loaded using `ApplyConfigurationsFromAssembly` from isolated `Configurations/EntityNameConfigurations` folders perfectly eliminating namespace bounds.
+- **Global Table Configurations**: Built-in Extension Methods dynamically convert all Database Schemas, Tables and Columns into pristine `snake_case` using Regex mapping (`.ToSnakeCase()`); meaning the C# `ChatMessage` securely maps to PostgreSQL `sf_chat_messages`.
+- **Action Filters Layer**: Fully reusable Interceptors (`ActivityLoggingFilter`, `RequestLoggingFilter`) injected directly into the API request scopes for auditing.
 
 ## 🚀 Getting Started
 

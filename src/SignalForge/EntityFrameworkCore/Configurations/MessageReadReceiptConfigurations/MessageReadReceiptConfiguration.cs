@@ -1,23 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SignalForge.Entities;
+using SignalForge.EntityFrameworkCore.Extensions;
 
-namespace SignalForge.EntityFrameworkCore.Configurations.MessageReadReceipt;
+namespace SignalForge.EntityFrameworkCore.Configurations.MessageReadReceiptConfigurations;
 
 public class MessageReadReceiptConfiguration : IEntityTypeConfiguration<Entities.MessageReadReceipt>
 {
-    private readonly string _tablePrefix;
-    private readonly string? _schema;
-
-    public MessageReadReceiptConfiguration(string tablePrefix, string? schema)
-    {
-        _tablePrefix = tablePrefix;
-        _schema = schema;
-    }
-
     public void Configure(EntityTypeBuilder<Entities.MessageReadReceipt> builder)
     {
-        builder.ToTable(_tablePrefix + "MessageReadReceipts", _schema);
+        builder.ToTable(builder.GetTableName());
         builder.HasKey(x => x.Id);
         
         builder.HasIndex(x => new { x.MessageId, x.UserId }).IsUnique();
