@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SignalForge.Sample/SignalForge.Sample.csproj" />
+    <Project Path="src/SignalForge/SignalForge.csproj" />
+  </Folder>
+</Solution>
